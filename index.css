@@ -397,16 +397,11 @@ body {
 .material-summary-section {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto auto;
   gap: 1.5rem;
   margin-bottom: 2rem;
-  grid-template-areas: 
-    "chart map"
-    "chart actions";
 }
 
 .summary-chart-container {
-  grid-area: chart;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -444,39 +439,7 @@ body {
   color: var(--text-primary);
 }
 
-.summary-map-container {
-  grid-area: map;
-  display: flex;
-  flex-direction: column;
-}
-.summary-map-container h3 {
-  font-size: 1.25rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-.map-container {
-  flex-grow: 1;
-  min-height: 150px;
-}
-#indonesia-map svg path {
-  fill: #cdd2d9;
-  stroke: #ffffff;
-  stroke-width: 0.5;
-  transition: fill 0.2s ease-in-out;
-}
-#indonesia-map svg path.has-stock {
-  fill: #a3c5ff; /* A light, friendly blue */
-}
-#indonesia-map svg path:hover {
-  fill: var(--accent-color);
-  cursor: pointer;
-}
-#indonesia-map svg path.active {
-  fill: var(--chart-color-4); /* A strong highlight color */
-}
-
 .summary-actions-container {
-  grid-area: actions;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1122,10 +1085,6 @@ body {
 @media (max-width: 992px) {
   .material-summary-section {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "chart"
-      "map"
-      "actions";
   }
   .cashflow-summary, .cashflow-details {
     grid-template-columns: 1fr;
