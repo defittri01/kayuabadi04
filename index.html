@@ -264,42 +264,55 @@
               </div>
           </div>
 
-           <!-- Redesigned Summary -->
-          <div id="cashflow-summary-redesigned" class="content-card">
-            <div class="summary-item">
-              <span class="summary-label">Total Income</span>
-              <span id="cashflow-total-income" class="summary-value income">Rp 0</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Total Expenses</span>
-              <span id="cashflow-total-expenses" class="summary-value expense">Rp 0</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Net Profit</span>
-              <span id="cashflow-net-profit" class="summary-value net-profit">Rp 0</span>
-            </div>
-            <div class="summary-item-full">
-              <span class="summary-label">Financial Health (Expenses vs Income)</span>
-              <div class="progress-bar-container">
-                <div id="financial-health-bar" class="progress-bar"></div>
+          <!-- Summary Section -->
+          <div class="cashflow-summary-container">
+              <div class="cashflow-stats-card content-card">
+                  <div class="stat-item">
+                      <div class="stat-header">
+                          <svg class="income-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                          <span>Total Income</span>
+                      </div>
+                      <p id="cashflow-total-income" class="stat-value income">Rp 0</p>
+                  </div>
+                  <div class="stat-item">
+                      <div class="stat-header">
+                           <svg class="expense-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                          <span>Total Expenses</span>
+                      </div>
+                      <p id="cashflow-total-expenses" class="stat-value expense">Rp 0</p>
+                  </div>
+                  <div class="stat-item">
+                      <div class="stat-header">
+                          <svg class="profit-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2v6.586a1 1 0 0 0 .293.707l8.414 8.414a2 2 0 0 0 2.828 0l6.586-6.586a2 2 0 0 0 0-2.828L12.207.293a1 1 0 0 0-.707-.293H5a2 2 0 0 0-2 2.5z"/><path d="m7.5 7.5 9 9"/><path d="m13.5 7.5 3 3"/></svg>
+                          <span>Net Profit</span>
+                      </div>
+                      <p id="cashflow-net-profit" class="stat-value net-profit">Rp 0</p>
+                  </div>
               </div>
-            </div>
+              <div class="cashflow-main-chart-card content-card">
+                  <h3>Income vs Expenses</h3>
+                  <div id="income-expense-chart-wrapper" class="chart-wrapper">
+                      <!-- Pie chart will be rendered here -->
+                  </div>
+              </div>
           </div>
-
-          <!-- Redesigned Details -->
-          <div class="cashflow-breakdown content-card">
-            <div class="breakdown-column">
-              <h3>Top Income Sources</h3>
-              <ul id="cash-in-breakdown" class="breakdown-list">
-                <!-- JS will populate this -->
-              </ul>
-            </div>
-            <div class="breakdown-column">
-              <h3>Top Expense Categories</h3>
-              <ul id="cash-out-breakdown" class="breakdown-list">
-                <!-- JS will populate this -->
-              </ul>
-            </div>
+          
+          <!-- Details Section -->
+          <div class="cashflow-details-container">
+              <div class="cashflow-detail-card content-card">
+                  <h3>Income by Category</h3>
+                  <div class="chart-container">
+                      <div id="income-category-chart-wrapper" class="chart-wrapper"></div>
+                      <ul id="income-category-legend" class="chart-legend"></ul>
+                  </div>
+              </div>
+              <div class="cashflow-detail-card content-card">
+                  <h3>Expenses by Category</h3>
+                  <div class="chart-container">
+                      <div id="expense-category-chart-wrapper" class="chart-wrapper"></div>
+                      <ul id="expense-category-legend" class="chart-legend"></ul>
+                  </div>
+              </div>
           </div>
           
           <!-- Daily Log Table -->
@@ -369,8 +382,8 @@
             <h4>Supplier Details</h4>
             <div class="form-row">
               <div class="form-group">
-                  <label for="stock-date">Date</label>
-                  <input type="date" id="stock-date" name="date" required>
+                  <label for="stock-date">Date & Time</label>
+                  <input type="datetime-local" id="stock-date" name="date" required>
               </div>
               <div class="form-group">
                 <label for="stock-supplier">Supplier Name</label>
@@ -403,7 +416,7 @@
               </div>
               <div class="form-group">
                 <label for="super-volume">Volume (m³)</label>
-                <input type="number" id="super-volume" name="super-volume" step="0.01" min="0" required>
+                <input type="number" id="super-volume" name="super-volume" step="any" min="0" required>
               </div>
               <div class="form-group">
                 <label for="super-price">Price (IDR)</label>
@@ -420,7 +433,7 @@
               </div>
               <div class="form-group">
                 <label for="rijek-volume">Volume (m³)</label>
-                <input type="number" id="rijek-volume" name="rijek-volume" step="0.01" min="0" required>
+                <input type="number" id="rijek-volume" name="rijek-volume" step="any" min="0" required>
               </div>
               <div class="form-group">
                 <label for="rijek-price">Price (IDR)</label>
