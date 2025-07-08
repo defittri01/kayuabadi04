@@ -6,20 +6,16 @@ import { createPieChart } from './pieChart';
 
 // --- STATE MANAGEMENT ---
 let localMaterialData: MaterialDataResponse | null = null;
-let activeMapFilter: string | null = null;
 let currentPage = 1;
 const ITEMS_PER_PAGE = 6;
 let isInitialized = false;
 
 // --- API COMMUNICATION LAYER ---
-async function fetchMaterialData(page: number, limit: number, origin: string | null): Promise<MaterialDataResponse> {
+async function fetchMaterialData(page: number, limit: number): Promise<MaterialDataResponse> {
     const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
     });
-    if (origin) {
-        params.append('origin', origin);
-    }
     const response = await fetch(`/api/material?${params.toString()}`);
     if (!response.ok) {
         throw new Error('Failed to fetch material stock data from server.');
@@ -66,32 +62,15 @@ function renderPagination() {
 
 const renderMaterialPage = () => {
     const materialCardsContainer = document.getElementById('material-cards-container') as HTMLElement;
-    const mapPaths = document.querySelectorAll<SVGPathElement>('#indonesia-map svg path');
     
     if (!materialCardsContainer || !localMaterialData) return;
 
     const { entries, summary } = localMaterialData;
 
-    // --- Update Map Highlighting ---
-    mapPaths.forEach(path => {
-        const regionName = path.getAttribute('data-name');
-        if (!regionName) return;
-
-        const hasStock = summary.allOrigins.some(origin => 
-            origin.toLowerCase().includes(regionName.toLowerCase())
-        );
-
-        path.classList.toggle('has-stock', hasStock);
-        path.classList.toggle('active', regionName === activeMapFilter);
-    });
-
     // 1. Render Material Cards
     materialCardsContainer.innerHTML = '';
     if (entries.length === 0) {
-        const message = activeMapFilter
-            ? `No stock data found for ${activeMapFilter}.`
-            : 'No stock entries yet. Click "Add New Stock" to begin.';
-        materialCardsContainer.innerHTML = `<p class="no-data-message">${message}</p>`;
+        materialCardsContainer.innerHTML = `<p class="no-data-message">No stock entries yet. Click "Add New Stock" to begin.</p>`;
     } else {
       entries.forEach(entry => {
         const card = document.createElement('div');
@@ -108,7 +87,7 @@ const renderMaterialPage = () => {
           <div class="card-header">
               <div>
                   <h4 class="card-supplier">${entry.supplier} / ${entry.driver}</h4>
-                  <p class="card-meta">${entry.origin} - ${formattedDate} pukul ${formattedTime}</p>
+                  <p class="card-meta">${entry.origin} - ${formattedDate} at ${formattedTime}</p>
               </div>
           </div>
           <div class="card-body">
@@ -167,7 +146,7 @@ async function refreshMaterialData() {
     if (paginationContainer) paginationContainer.classList.add('hidden');
     
     try {
-        localMaterialData = await fetchMaterialData(currentPage, ITEMS_PER_PAGE, activeMapFilter);
+        localMaterialData = await fetchMaterialData(currentPage, ITEMS_PER_PAGE);
         renderMaterialPage();
     } catch(error) {
         console.error(error);
@@ -185,12 +164,12 @@ function setupMaterialEventListeners() {
     const modalCancelBtn = document.getElementById('modal-cancel-btn') as HTMLButtonElement;
     const addStockForm = document.getElementById('add-stock-form') as HTMLFormElement;
     const stockDateInput = document.getElementById('stock-date') as HTMLInputElement;
+    const stockTimeInput = document.getElementById('stock-time') as HTMLInputElement;
     const prevBtn = document.getElementById('material-prev-btn') as HTMLButtonElement;
     const nextBtn = document.getElementById('material-next-btn') as HTMLButtonElement;
-    const mapPaths = document.querySelectorAll<SVGPathElement>('#indonesia-map svg path');
     const modalSubmitBtn = addStockForm.querySelector('button[type="submit"]') as HTMLButtonElement;
 
-    if(!addStockBtn || !modal || !addStockForm || !prevBtn || !nextBtn || !modalSubmitBtn) {
+    if(!addStockBtn || !modal || !addStockForm || !prevBtn || !nextBtn || !modalSubmitBtn || !stockTimeInput) {
         console.error("Could not set up material event listeners: key elements are missing.");
         return;
     }
@@ -205,7 +184,11 @@ function setupMaterialEventListeners() {
 
     addStockBtn.addEventListener('click', () => {
         addStockForm.reset();
-        stockDateInput.valueAsDate = new Date(); // Set to today by default
+        const now = new Date();
+        // Adjust for timezone to set local date and time correctly in inputs
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        stockDateInput.value = now.toISOString().slice(0,10); // YYYY-MM-DD
+        stockTimeInput.value = now.toISOString().slice(11,16); // HH:mm
         openModal();
     });
 
@@ -219,19 +202,27 @@ function setupMaterialEventListeners() {
         e.preventDefault();
         const formData = new FormData(addStockForm);
         
-        const date = (formData.get('date') as string)?.trim();
+        const datePart = (formData.get('date') as string)?.trim();
+        const timePart = (formData.get('time') as string)?.trim();
         const supplier = (formData.get('supplier') as string)?.trim();
         const driver = (formData.get('driver') as string)?.trim();
         const origin = (formData.get('origin') as string)?.trim();
         
         let errors: string[] = [];
-        if (!date) errors.push('Date is required.');
+        if (!datePart) errors.push('Date is required.');
+        if (!timePart) errors.push('Time is required.');
         if (!supplier) errors.push('Supplier name is required.');
         if (!driver) errors.push('Driver name is required.');
         if (!origin) errors.push('Origin is required.');
 
+        // Combine date and time into a single ISO 8601 string for the backend.
+        // The backend expects `timestamptz`, so a full ISO string is perfect.
+        const date = datePart && timePart ? new Date(`${datePart}T${timePart}`).toISOString() : '';
+        if (!date) errors.push('Date and time must form a valid timestamp.');
+
+
         const validateVolumeField = (valueStr: string | null, name: string): number => {
-            if (!valueStr || !valueStr.trim()) {
+            if (valueStr === null || valueStr.trim() === '') {
                 errors.push(`${name} is required.`);
                 return NaN;
             }
@@ -247,7 +238,7 @@ function setupMaterialEventListeners() {
         };
 
         const validateIntegerField = (valueStr: string | null, name: string): number => {
-            if (!valueStr || !valueStr.trim()) {
+            if (valueStr === null || valueStr.trim() === '') {
                 errors.push(`${name} is required.`);
                 return NaN;
             }
@@ -284,9 +275,7 @@ function setupMaterialEventListeners() {
             await createStockEntryAPI(newEntryData);
             
             closeModal();
-
             currentPage = 1;
-            activeMapFilter = null;
             await refreshMaterialData();
         } catch (error) {
             console.error(error);
@@ -311,18 +300,6 @@ function setupMaterialEventListeners() {
             currentPage++;
             refreshMaterialData();
         }
-    });
-
-    mapPaths.forEach(path => {
-        path.addEventListener('click', () => {
-            const provinceName = path.getAttribute('data-name');
-            if (!provinceName) return;
-
-            activeMapFilter = (provinceName === activeMapFilter) ? null : provinceName;
-            currentPage = 1;
-            
-            refreshMaterialData();
-        });
     });
 }
 
