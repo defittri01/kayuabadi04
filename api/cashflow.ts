@@ -53,7 +53,7 @@ async function getFilteredCashflowData(
         : Promise.resolve({ rows: [{ balance: 0 }] });
 
     const logPromise = client.query(
-        `SELECT id, date::text, type, category, description, amount::bigint FROM cashflow_entries ${whereClause} ORDER BY date DESC, id DESC`,
+        `SELECT id, date::text, type, category, description, amount FROM cashflow_entries ${whereClause} ORDER BY date DESC, id DESC`,
         queryParams
     );
 
@@ -71,29 +71,37 @@ async function getFilteredCashflowData(
     // 2. Process results
     const startingBalance = Number(balanceRes.rows[0].balance);
     
-    const chronologicalLog = [...logRes.rows].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id);
+    // Parse all log entries and their amounts to numbers first.
+    const parsedLogEntries: DailyCashflowLogEntry[] = logRes.rows.map(row => ({
+      ...row,
+      amount: Number(row.amount),
+    }));
+
+    // Use a fresh, sorted copy for running balance calculation.
+    const chronologicalLog = [...parsedLogEntries].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id);
+    
     const balanceHistory = new Map<number, number>();
     let currentBalance = startingBalance;
     chronologicalLog.forEach(entry => {
-        currentBalance += (entry.type === 'income' ? Number(entry.amount) : -Number(entry.amount));
+        // Use the already parsed number amount.
+        currentBalance += (entry.type === 'income' ? entry.amount : -entry.amount);
         balanceHistory.set(entry.id, currentBalance);
     });
     
-    const parseAmount = (row: any) => ({ ...row, amount: Number(row.amount) });
-
-    const dailyLog: DailyCashflowLogEntry[] = logRes.rows.map(row => ({
-        ...parseAmount(row),
+    // Map the original-ordered (DESC) parsed entries to add the calculated running balance.
+    const dailyLog: DailyCashflowLogEntry[] = parsedLogEntries.map(row => ({
+        ...row,
         runningBalance: balanceHistory.get(row.id) ?? 0,
     }));
     
     const income: CashflowItem[] = [];
     const expenses: CashflowItem[] = [];
     breakdownRes.rows.forEach(row => {
-        const item = parseAmount(row);
+        const itemAmount = Number(row.amount); // Parse breakdown amount
         if(row.type === 'income') {
-            income.push({ category: item.category, amount: item.amount });
+            income.push({ category: row.category, amount: itemAmount });
         } else {
-            expenses.push({ category: item.category, amount: item.amount });
+            expenses.push({ category: row.category, amount: itemAmount });
         }
     });
 
@@ -202,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const result = await client.query(
                 `INSERT INTO cashflow_entries (date, type, category, description, amount)
                  VALUES ($1, $2, $3, $4, $5)
-                 RETURNING id, date::text, type, category, description, amount::bigint`,
+                 RETURNING id, date::text, type, category, description, amount`,
                 [date, type, category.trim(), description.trim(), amount]
             );
 
@@ -232,7 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 `UPDATE cashflow_entries
                  SET date = $1, type = $2, category = $3, description = $4, amount = $5
                  WHERE id = $6
-                 RETURNING id, date::text, type, category, description, amount::bigint`,
+                 RETURNING id, date::text, type, category, description, amount`,
                 [date, type, category.trim(), description.trim(), amount, id]
             );
 
