@@ -1,6 +1,3 @@
-
-
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -114,6 +111,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             );
         `);
 
+        // --- Schema modification for cashflow integration ---
+        await client.query(`ALTER TABLE cashflow_entries ADD COLUMN IF NOT EXISTS material_stock_id INT;`);
+        await client.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint 
+                    WHERE conname = 'cashflow_entries_material_stock_id_key' 
+                    AND conrelid = 'cashflow_entries'::regclass
+                ) THEN
+                    ALTER TABLE cashflow_entries ADD CONSTRAINT cashflow_entries_material_stock_id_key UNIQUE (material_stock_id);
+                END IF;
+            END;
+            $$;
+        `);
+
+
         const tableCheck = await client.query('SELECT COUNT(*) FROM stock_entries');
         if (tableCheck.rows[0].count === '0') {
             await client.query(`
@@ -189,44 +203,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (req.method === 'POST') {
-            if (!req.body) {
-                return res.status(400).json({ message: 'Request body is missing.' });
-            }
-            
+            if (!req.body) return res.status(400).json({ message: 'Request body is missing.' });
             const validationError = validateStockEntry(req.body);
-            if (validationError) {
-                return res.status(400).json({ message: validationError });
-            }
+            if (validationError) return res.status(400).json({ message: validationError });
             
             const { date, supplier, driver, origin, super: superLog, rijek } = req.body;
             
-            const result = await client.query(
+            await client.query('BEGIN'); // Start transaction
+            const stockResult = await client.query(
                 `INSERT INTO stock_entries (supplier, driver, origin, date, super_count, super_volume, super_price, rijek_count, rijek_volume, rijek_price)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                  RETURNING *`,
                 [supplier, driver, origin, date, superLog.count, superLog.volume, superLog.price, rijek.count, rijek.volume, rijek.price]
             );
+            const newStockEntry = mapRowToStockEntry(stockResult.rows[0]);
+            
+            const totalPrice = newStockEntry.super.price + newStockEntry.rijek.price;
+            const description = `Pembelian log dari ${newStockEntry.supplier} (Driver: ${newStockEntry.driver}, Asal: ${newStockEntry.origin}). Super: ${newStockEntry.super.count} batang, Rijek: ${newStockEntry.rijek.count} batang.`;
 
-            if (result.rows.length === 0) {
-                throw new Error('Database did not return the new entry after insertion.');
-            }
-            const newEntry = mapRowToStockEntry(result.rows[0]);
-            return res.status(201).json(newEntry);
+            await client.query(
+                `INSERT INTO cashflow_entries (date, type, category, description, amount, material_stock_id)
+                 VALUES ($1, 'expense', 'Kayu Log', $2, $3, $4)`,
+                [new Date(newStockEntry.date), description, totalPrice, newStockEntry.id]
+            );
+
+            await client.query('COMMIT'); // Commit transaction
+            return res.status(201).json(newStockEntry);
         }
 
         if (req.method === 'PUT') {
-            if (!req.body) {
-                return res.status(400).json({ message: 'Request body is missing.' });
-            }
-            
-            const validationError = validateStockEntry(req.body, true); // true for update
-            if (validationError) {
-                return res.status(400).json({ message: validationError });
-            }
+            if (!req.body) return res.status(400).json({ message: 'Request body is missing.' });
+            const validationError = validateStockEntry(req.body, true);
+            if (validationError) return res.status(400).json({ message: validationError });
             
             const { id, date, supplier, driver, origin, super: superLog, rijek } = req.body;
-            
-            const result = await client.query(
+
+            await client.query('BEGIN'); // Start transaction
+            const stockResult = await client.query(
                 `UPDATE stock_entries SET
                     supplier = $1, driver = $2, origin = $3, date = $4,
                     super_count = $5, super_volume = $6, super_price = $7,
@@ -236,34 +249,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 [supplier, driver, origin, date, superLog.count, superLog.volume, superLog.price, rijek.count, rijek.volume, rijek.price, id]
             );
 
-            if (result.rowCount === 0) {
+            if (stockResult.rowCount === 0) {
+                await client.query('ROLLBACK');
                 return res.status(404).json({ message: 'Stock entry not found.' });
             }
-            const updatedEntry = mapRowToStockEntry(result.rows[0]);
+            const updatedEntry = mapRowToStockEntry(stockResult.rows[0]);
+            
+            const totalPrice = updatedEntry.super.price + updatedEntry.rijek.price;
+            const description = `(Revisi) Pembelian log dari ${updatedEntry.supplier} (Driver: ${updatedEntry.driver}, Asal: ${updatedEntry.origin}). Super: ${updatedEntry.super.count} batang, Rijek: ${updatedEntry.rijek.count} batang.`;
+
+            await client.query(
+                `INSERT INTO cashflow_entries (date, type, category, description, amount, material_stock_id)
+                 VALUES ($1, 'expense', 'Kayu Log', $2, $3, $4)
+                 ON CONFLICT (material_stock_id)
+                 DO UPDATE SET date = EXCLUDED.date, description = EXCLUDED.description, amount = EXCLUDED.amount`,
+                [new Date(updatedEntry.date), description, totalPrice, updatedEntry.id]
+            );
+
+            await client.query('COMMIT');
             return res.status(200).json(updatedEntry);
         }
         
         if (req.method === 'DELETE') {
             const { id } = req.body;
-
             if (typeof id !== 'number' || id <= 0) {
                 return res.status(400).json({ message: 'A valid stock entry ID is required.' });
             }
 
+            await client.query('BEGIN');
+            await client.query('DELETE FROM cashflow_entries WHERE material_stock_id = $1', [id]);
             const result = await client.query('DELETE FROM stock_entries WHERE id = $1', [id]);
-
+            
             if (result.rowCount === 0) {
+                await client.query('ROLLBACK');
                 return res.status(404).json({ message: 'Stock entry not found.' });
             }
-
+            
+            await client.query('COMMIT');
             return res.status(204).end();
         }
 
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
 
-    } catch (error) {
+    } catch (error: any) {
+        if(client) await client.query('ROLLBACK');
         console.error('API Database Error:', error);
+        // Provide a more specific error message if it's a constraint violation
+        if (error.code === '23505') { // unique_violation
+             return res.status(409).json({ message: 'A database conflict occurred. This might be a duplicate entry.' });
+        }
         return res.status(500).json({ message: 'An unexpected error occurred on the server.' });
     } finally {
         if (client) {
