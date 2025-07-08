@@ -646,92 +646,113 @@ body {
   height: calc(0.8rem + 1rem + 2px); /* font-size + padding + border */
 }
 
-
-.cashflow-summary {
+/* New Cashflow Summary Styles */
+#cashflow-summary-redesigned {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+  align-items: center;
 }
-.cashflow-summary .chart-card {
+
+.summary-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
-.cashflow-summary .chart-card h3 {
-  font-size: 1.25rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-.chart-wrapper.large-chart {
-  width: 200px;
-  height: 200px;
-}
-.cashflow-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-.summary-card {
-  padding: 1.25rem;
-}
-.summary-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  font-weight: 500;
+
+.summary-label {
+  font-size: 0.9rem;
   color: var(--text-secondary);
+  margin-bottom: 0.25rem;
 }
-.summary-card-header svg {
-  width: 28px;
-  height: 28px;
-  padding: 4px;
-  border-radius: 50%;
-}
-.summary-card.income .summary-card-header svg {
-  background-color: #e0f8e6;
-  color: var(--status-green);
-}
-.summary-card.expense .summary-card-header svg {
-  background-color: #fde1e3;
-  color: var(--status-red);
-}
-.summary-card.net-profit .summary-card-header svg {
-  background-color: #dde8ff;
-  color: var(--accent-color);
-}
-.summary-card-value {
+
+.summary-value {
   font-size: 1.75rem;
   font-weight: 700;
 }
-.summary-card.income .summary-card-value {
-  color: var(--status-green);
-}
-.summary-card.expense .summary-card-value {
-  color: var(--status-red);
-}
-.summary-card.net-profit .summary-card-value {
-  color: var(--accent-color);
+
+.summary-value.income { color: var(--status-green); }
+.summary-value.expense { color: var(--status-red); }
+.summary-value.net-profit { color: var(--text-primary); }
+
+.summary-item-full {
+  grid-column: 1 / -1; /* Span full width */
 }
 
-.cashflow-details {
+.progress-bar-container {
+  width: 100%;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--status-red);
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* New Cashflow Breakdown Styles */
+.cashflow-breakdown {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 2rem;
 }
-.cashflow-column h3 {
+
+.breakdown-column h3 {
   font-size: 1.25rem;
   font-weight: 500;
   margin-bottom: 1.5rem;
-  text-align: center;
 }
 
-.cashflow-column .chart-container {
-  justify-content: center;
+.breakdown-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
+
+.breakdown-item {
+  font-size: 0.95rem;
+}
+
+.breakdown-item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.breakdown-category {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.breakdown-amount {
+  color: var(--text-secondary);
+}
+
+.breakdown-progress-bar {
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.breakdown-progress-bar div {
+  height: 100%;
+  transition: width 0.5s ease-in-out;
+}
+
+.breakdown-column:first-child .breakdown-progress-bar div {
+  background-color: var(--status-green);
+}
+
+.breakdown-column:last-child .breakdown-progress-bar div {
+  background-color: var(--status-red);
+}
+
 
 /* Daily Cashflow Log Table */
 .daily-cashflow-log {
@@ -1094,9 +1115,6 @@ body {
   .material-summary-section {
     grid-template-columns: 1fr;
   }
-  .cashflow-summary, .cashflow-details {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 768px) {
@@ -1139,6 +1157,9 @@ body {
   .page-filters {
     flex-direction: column;
     align-items: flex-start;
+  }
+  #cashflow-summary-redesigned, .cashflow-breakdown {
+    grid-template-columns: 1fr;
   }
 }
 
