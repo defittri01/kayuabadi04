@@ -792,7 +792,7 @@ body {
 .data-table th.actions-header {
   text-align: center;
 }
-.data-table tbody tr:hover {
+.data-table tbody tr:not(.automated):hover {
   background-color: #f1f3f5;
 }
 .data-table td:last-child {
@@ -901,8 +901,24 @@ body {
     background-color: #fff3cd; /* Light yellow */
 }
 
-.data-table tbody tr.selected:hover {
+.data-table tbody tr.selected:not(.automated):hover {
     background-color: #ffeeba;
+}
+
+/* Automated entry styles */
+.data-table tbody tr.automated {
+    background-color: #f8f9fa;
+    color: var(--text-secondary);
+}
+.actions-cell .automated-entry-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    color: var(--text-secondary);
+    cursor: help;
 }
 
 /* Sortable Table Headers */
