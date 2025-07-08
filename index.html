@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV. Kayu Abadi - Dashboard</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "pg": "https://esm.sh/pg@^8.16.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <header class="top-bar">
+    <button id="menu-toggle" class="menu-toggle" aria-label="Open menu">
+      <svg class="icon-menu" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12H21" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 6H21" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 18H21" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg class="icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 6L18 18" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <a href="#" class="nav-logo">CV. Kayu Abadi</a>
+  </header>
+
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>Menu</h2>
+      <button id="sidebar-close-btn" class="menu-toggle" aria-label="Close menu">
+         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 6L6 18" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M6 6L18 18" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </button>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item"><a href="#" class="nav-link active" data-target="dashboard">Dashboard</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="material">Material Stock</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="cashflow">Cashflow</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="manpower">Manpower</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="equipment">Equipment</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="sales">Sales</a></li>
+      <li class="nav-item"><a href="#" class="nav-link" data-target="productivity">Productivity</a></li>
+    </ul>
+  </nav>
+
+  <div id="overlay" class="overlay"></div>
+
+  <main id="main-content" class="main-content">
+    <section id="dashboard" class="page-content active">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p>A comprehensive overview of your business operations.</p>
+      </div>
+      <div class="dashboard-grid">
+        <!-- Material Stock Card -->
+        <div class="dashboard-card">
+          <h3>Material Stock</h3>
+          <div class="chart-container">
+            <div id="material-chart-wrapper" class="chart-wrapper">
+              <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+              <div class="chart-tooltip"></div>
+            </div>
+            <ul class="chart-legend">
+              <li><span class="legend-color material-1"></span>Finished Goods</li>
+              <li><span class="legend-color material-2"></span>Raw Materials</li>
+              <li><span class="legend-color material-3"></span>Work in Progress</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Cashflow Card -->
+        <div class="dashboard-card">
+          <h3>Cashflow</h3>
+          <div class="chart-container">
+            <div id="cashflow-chart-wrapper" class="chart-wrapper">
+              <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+              <div class="chart-tooltip"></div>
+            </div>
+            <ul class="chart-legend">
+              <li><span class="legend-color cashflow-1"></span>Income</li>
+              <li><span class="legend-color cashflow-2"></span>Operating Expenses</li>
+              <li><span class="legend-color cashflow-3"></span>Investments</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Manpower Card -->
+        <div class="dashboard-card">
+          <h3>Manpower</h3>
+          <div class="chart-container">
+            <div id="manpower-chart-wrapper" class="chart-wrapper">
+              <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+              <div class="chart-tooltip"></div>
+            </div>
+            <ul class="chart-legend">
+              <li><span class="legend-color manpower-1"></span>Production</li>
+              <li><span class="legend-color manpower-2"></span>Sales & Marketing</li>
+              <li><span class="legend-color manpower-3"></span>R&D</li>
+              <li><span class="legend-color manpower-4"></span>Admin</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Equipment Card -->
+        <div class="dashboard-card">
+          <h3>Equipment</h3>
+          <div class="chart-container">
+            <div id="equipment-chart-wrapper" class="chart-wrapper">
+              <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+              <div class="chart-tooltip"></div>
+            </div>
+            <ul class="chart-legend">
+              <li><span class="legend-color equipment-1"></span>In Use</li>
+              <li><span class="legend-color equipment-2"></span>Under Maintenance</li>
+              <li><span class="legend-color equipment-3"></span>Idle</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Sales Card -->
+        <div class="dashboard-card large-card">
+          <h3>Sales Overview</h3>
+          <div class="sales-content">
+            <div class="chart-container">
+              <div id="sales-chart-wrapper" class="chart-wrapper">
+                <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+                <div class="chart-tooltip"></div>
+              </div>
+              <ul class="chart-legend">
+                <li><span class="legend-color sales-1"></span>Q1</li>
+                <li><span class="legend-color sales-2"></span>Q2</li>
+                <li><span class="legend-color sales-3"></span>Q3</li>
+                <li><span class="legend-color sales-4"></span>Q4</li>
+              </ul>
+            </div>
+            <div class="table-container">
+              <h4 class="table-title">Top Products by Revenue</h4>
+              <table class="sales-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Units Sold</th>
+                    <th>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Teak Dining Table</td>
+                    <td>120</td>
+                    <td>$48,000</td>
+                  </tr>
+                  <tr>
+                    <td>Oak Bookshelf</td>
+                    <td>85</td>
+                    <td>$31,875</td>
+                  </tr>
+                  <tr>
+                    <td>Pine Wood Planks</td>
+                    <td>1,500</td>
+                    <td>$22,500</td>
+                  </tr>
+                  <tr>
+                    <td>Mahogany Chair Set</td>
+                    <td>50</td>
+                    <td>$20,000</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- Productivity Card -->
+        <div class="dashboard-card">
+          <h3>Productivity</h3>
+          <div class="chart-container">
+            <div id="productivity-chart-wrapper" class="chart-wrapper">
+              <svg class="pie-chart-svg" viewBox="0 0 100 100"></svg>
+              <div class="chart-tooltip"></div>
+            </div>
+            <ul class="chart-legend">
+              <li><span class="legend-color productivity-1"></span>Exceeding Target</li>
+              <li><span class="legend-color productivity-2"></span>On Target</li>
+              <li><span class="legend-color productivity-3"></span>Below Target</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="material" class="page-content">
+      <div class="page-header">
+        <h1>Material Stock</h1>
+        <p>Track and manage your wood log inventory from suppliers.</p>
+      </div>
+
+      <div class="material-summary-section">
+          <div class="summary-chart-container content-card">
+              <h3>Total Stock by Volume (Super vs Rijek)</h3>
+              <div id="material-summary-chart" class="chart-wrapper"></div>
+              <div class="summary-stats">
+                  <div class="summary-stat-item">
+                      <span class="stat-label">Total Volume</span>
+                      <span id="summary-stat-volume" class="stat-value">0 m³</span>
+                  </div>
+                  <div class="summary-stat-item">
+                      <span class="stat-label">Total Value</span>
+                      <span id="summary-stat-value" class="stat-value">Rp 0</span>
+                  </div>
+                   <div class="summary-stat-item">
+                      <span class="stat-label">Total Logs</span>
+                      <span id="summary-stat-count" class="stat-value">0</span>
+                  </div>
+              </div>
+          </div>
+          <div class="summary-actions-container content-card">
+              <button id="add-stock-btn" class="btn-primary btn-large">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  Add New Stock
+              </button>
+          </div>
+      </div>
+
+      <div id="material-cards-container" class="material-cards-container">
+        <!-- Stock cards will be injected here by material.js -->
+      </div>
+      <div id="material-pagination-container" class="pagination-container hidden">
+          <button id="material-prev-btn" class="btn-secondary">Previous</button>
+          <span id="material-page-info"></span>
+          <button id="material-next-btn" class="btn-secondary">Next</button>
+      </div>
+    </section>
+
+    <section id="cashflow" class="page-content">
+      <div class="page-header">
+          <h1>Cashflow</h1>
+          <p>Monitor your income, expenses, and overall financial health.</p>
+      </div>
+
+      <div class="cashflow-container">
+          <!-- Filters -->
+          <div class="page-filters">
+              <div class="filter-group">
+                  <button class="btn-filter active" data-period="all">All Time</button>
+                  <button class="btn-filter" data-period="90">Last 90 Days</button>
+                  <button class="btn-filter" data-period="30">Last 30 Days</button>
+                  <button class="btn-filter" data-period="7">Last 7 Days</button>
+              </div>
+              <div class="date-range-filter">
+                  <div class="form-group">
+                      <label for="cashflow-date-from">From</label>
+                      <input type="date" id="cashflow-date-from">
+                  </div>
+                  <div class="form-group">
+                      <label for="cashflow-date-to">To</label>
+                      <input type="date" id="cashflow-date-to">
+                  </div>
+                  <button id="apply-date-range-btn" class="btn-primary">Apply</button>
+              </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="cashflow-summary content-card">
+              <div class="cashflow-stats">
+                  <div class="summary-card income">
+                      <h4 class="summary-card-header">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                          <span>Total Income</span>
+                      </h4>
+                      <p id="cashflow-total-income" class="summary-card-value">Rp 0</p>
+                  </div>
+                  <div class="summary-card expense">
+                      <h4 class="summary-card-header">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          <span>Total Expenses</span>
+                      </h4>
+                      <p id="cashflow-total-expenses" class="summary-card-value">Rp 0</p>
+                  </div>
+                   <div class="summary-card net-profit">
+                      <h4 class="summary-card-header">
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trending-up"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                          <span>Net Profit</span>
+                      </h4>
+                      <p id="cashflow-net-profit" class="summary-card-value">Rp 0</p>
+                  </div>
+              </div>
+              <div class="chart-card">
+                  <h3>Income vs Expenses</h3>
+                  <div id="cashflow-summary-chart-wrapper" class="chart-wrapper large-chart"></div>
+              </div>
+          </div>
+
+          <!-- Details -->
+          <div class="cashflow-details">
+              <div class="cashflow-column content-card">
+                  <h3>Income by Category</h3>
+                  <div class="chart-container">
+                      <div id="cash-in-chart-wrapper" class="chart-wrapper"></div>
+                      <ul id="cash-in-legend" class="chart-legend"></ul>
+                  </div>
+              </div>
+              <div class="cashflow-column content-card">
+                  <h3>Expenses by Category</h3>
+                  <div class="chart-container">
+                      <div id="cash-out-chart-wrapper" class="chart-wrapper"></div>
+                      <ul id="cash-out-legend" class="chart-legend"></ul>
+                  </div>
+              </div>
+          </div>
+          
+          <!-- Daily Log Table -->
+          <div class="daily-cashflow-log content-card">
+              <div class="card-title-actions">
+                  <h3>Daily Log</h3>
+                  <div class="card-header-actions">
+                      <button id="bulk-delete-btn" class="btn-danger hidden">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          <span>Delete Selected</span>
+                      </button>
+                      <button id="add-cashflow-entry-btn" class="btn-primary">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          Add Entry
+                      </button>
+                  </div>
+              </div>
+              <div class="table-container-full">
+                  <table class="data-table">
+                      <thead>
+                          <tr>
+                              <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox" aria-label="Select all entries"></th>
+                              <th class="sortable-header" data-sort-key="date"><div><span>Date</span><span class="sort-indicator"></span></div></th>
+                              <th class="sortable-header" data-sort-key="type"><div><span>Type</span><span class="sort-indicator"></span></div></th>
+                              <th class="sortable-header" data-sort-key="category"><div><span>Category</span><span class="sort-indicator"></span></div></th>
+                              <th>Description</th>
+                              <th>Amount</th>
+                              <th>Running Balance</th>
+                              <th class="actions-header">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody id="daily-log-body">
+                          <!-- Log rows will be injected here -->
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+    </section>
+
+    <section id="manpower" class="page-content">
+      <div class="page-header"><h1>Manpower</h1><p>Content coming soon.</p></div>
+    </section>
+    <section id="equipment" class="page-content">
+      <div class="page-header"><h1>Equipment</h1><p>Content coming soon.</p></div>
+    </section>
+    <section id="sales" class="page-content">
+      <div class="page-header"><h1>Sales</h1><p>Content coming soon.</p></div>
+    </section>
+    <section id="productivity" class="page-content">
+      <div class="page-header"><h1>Productivity</h1><p>Content coming soon.</p></div>
+    </section>
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- Add Material Stock Modal -->
+  <div id="add-stock-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <form id="add-stock-form">
+        <div class="modal-header">
+          <h3>Add New Material Stock</h3>
+          <button type="button" id="modal-close-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-section">
+            <h4>Supplier Details</h4>
+            <div class="form-row">
+              <div class="form-group">
+                  <label for="stock-date">Date</label>
+                  <input type="date" id="stock-date" name="date" required>
+              </div>
+              <div class="form-group">
+                <label for="stock-supplier">Supplier Name</label>
+                <input type="text" id="stock-supplier" name="supplier" placeholder="e.g., PT Jati Unggul" required>
+              </div>
+              <div class="form-group">
+                <label for="stock-driver">Driver Name</label>
+                <input type="text" id="stock-driver" name="driver" placeholder="e.g., Budi Santoso" required>
+              </div>
+              <div class="form-group">
+                <label for="stock-origin">Origin</label>
+                <input type="text" id="stock-origin" name="origin" placeholder="e.g., Jawa" required list="origin-list">
+                 <datalist id="origin-list">
+                    <option value="Jawa"></option>
+                    <option value="Kalimantan"></option>
+                    <option value="Sumatera"></option>
+                    <option value="Sulawesi"></option>
+                    <option value="Papua"></option>
+                    <option value="Nusa Tenggara"></option>
+                </datalist>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Super Quality Logs</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="super-count">Count (Batang)</label>
+                <input type="number" id="super-count" name="super-count" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="super-volume">Volume (m³)</label>
+                <input type="number" id="super-volume" name="super-volume" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="super-price">Price (IDR)</label>
+                <input type="number" id="super-price" name="super-price" min="0" required>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Rijek Quality Logs</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="rijek-count">Count (Batang)</label>
+                <input type="number" id="rijek-count" name="rijek-count" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="rijek-volume">Volume (m³)</label>
+                <input type="number" id="rijek-volume" name="rijek-volume" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="rijek-price">Price (IDR)</label>
+                <input type="number" id="rijek-price" name="rijek-price" min="0" required>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="modal-cancel-btn" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Cashflow Entry Modal -->
+  <div id="cashflow-entry-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+          <form id="cashflow-entry-form">
+              <div class="modal-header">
+                  <h3 id="cashflow-modal-title">Add Cashflow Entry</h3>
+                  <button type="button" id="cashflow-modal-close-btn" class="modal-close-btn" aria-label="Close modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <div class="form-row">
+                      <div class="form-group">
+                          <label for="cashflow-date">Date</label>
+                          <input type="date" id="cashflow-date" name="date" required>
+                      </div>
+                      <div class="form-group">
+                          <label for="cashflow-type">Type</label>
+                          <select id="cashflow-type" name="type" required>
+                              <option value="income">Income</option>
+                              <option value="expense">Expense</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div class="form-row">
+                      <div class="form-group">
+                          <label for="cashflow-category">Category</label>
+                          <input type="text" id="cashflow-category" name="category" placeholder="e.g., Sales, Salary" required list="cashflow-category-list">
+                          <datalist id="cashflow-category-list"></datalist>
+                      </div>
+                      <div class="form-group">
+                          <label for="cashflow-amount">Amount (IDR)</label>
+                          <input type="number" id="cashflow-amount" name="amount" placeholder="e.g., 5000000" min="1" required>
+                      </div>
+                  </div>
+                  <div class="form-group full-width">
+                      <label for="cashflow-description">Description</label>
+                      <textarea id="cashflow-description" name="description" rows="3" placeholder="Add a short description of the transaction..."></textarea>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" id="cashflow-modal-cancel-btn" class="btn-secondary">Cancel</button>
+                  <button type="submit" id="cashflow-modal-submit-btn" class="btn-primary">Save Entry</button>
+              </div>
+          </form>
+      </div>
+  </div>
+
+
+  <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
