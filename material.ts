@@ -6,17 +6,20 @@ import { createPieChart } from './pieChart';
 
 // --- STATE MANAGEMENT ---
 let localMaterialData: MaterialDataResponse | null = null;
+let activeMapFilter: string | null = null;
 let currentPage = 1;
 const ITEMS_PER_PAGE = 6;
 let isInitialized = false;
-let currentEditingId: number | null = null;
 
 // --- API COMMUNICATION LAYER ---
-async function fetchMaterialData(page: number, limit: number): Promise<MaterialDataResponse> {
+async function fetchMaterialData(page: number, limit: number, origin: string | null): Promise<MaterialDataResponse> {
     const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
     });
+    if (origin) {
+        params.append('origin', origin);
+    }
     const response = await fetch(`/api/material?${params.toString()}`);
     if (!response.ok) {
         throw new Error('Failed to fetch material stock data from server.');
@@ -36,32 +39,6 @@ async function createStockEntryAPI(entryData: Omit<StockEntry, 'id'>): Promise<S
     }
     return response.json();
 }
-
-async function updateStockEntryAPI(entryData: StockEntry): Promise<StockEntry> {
-    const response = await fetch('/api/material', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entryData),
-    });
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to update stock entry.' }));
-        throw new Error(errorData.message || 'Failed to update stock entry.');
-    }
-    return response.json();
-}
-
-async function deleteStockEntryAPI(id: number): Promise<void> {
-    const response = await fetch('/api/material', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-    });
-    if (response.status !== 204) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to delete entry.' }));
-        throw new Error(errorData.message || 'Failed to delete entry.');
-    }
-}
-
 
 // --- RENDERING LOGIC ---
 
@@ -89,15 +66,31 @@ function renderPagination() {
 
 const renderMaterialPage = () => {
     const materialCardsContainer = document.getElementById('material-cards-container') as HTMLElement;
+    const mapPaths = document.querySelectorAll<SVGPathElement>('#indonesia-map svg path');
     
     if (!materialCardsContainer || !localMaterialData) return;
 
     const { entries, summary } = localMaterialData;
 
+    // --- Update Map Highlighting ---
+    mapPaths.forEach(path => {
+        const regionName = path.getAttribute('data-name');
+        if (!regionName) return;
+
+        const hasStock = summary.allOrigins.some(origin => 
+            origin.toLowerCase().includes(regionName.toLowerCase())
+        );
+
+        path.classList.toggle('has-stock', hasStock);
+        path.classList.toggle('active', regionName === activeMapFilter);
+    });
+
     // 1. Render Material Cards
     materialCardsContainer.innerHTML = '';
     if (entries.length === 0) {
-        const message = 'No stock entries yet. Click "Add New Stock" to begin.';
+        const message = activeMapFilter
+            ? `No stock data found for ${activeMapFilter}.`
+            : 'No stock entries yet. Click "Add New Stock" to begin.';
         materialCardsContainer.innerHTML = `<p class="no-data-message">${message}</p>`;
     } else {
       entries.forEach(entry => {
@@ -116,14 +109,6 @@ const renderMaterialPage = () => {
               <div>
                   <h4 class="card-supplier">${entry.supplier} / ${entry.driver}</h4>
                   <p class="card-meta">${entry.origin} - ${formattedDate} pukul ${formattedTime}</p>
-              </div>
-              <div class="card-header-actions">
-                  <button class="action-btn btn-revise" data-id="${entry.id}" aria-label="Revise entry">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  </button>
-                  <button class="action-btn btn-delete" data-id="${entry.id}" aria-label="Delete entry">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                  </button>
               </div>
           </div>
           <div class="card-body">
@@ -182,7 +167,7 @@ async function refreshMaterialData() {
     if (paginationContainer) paginationContainer.classList.add('hidden');
     
     try {
-        localMaterialData = await fetchMaterialData(currentPage, ITEMS_PER_PAGE);
+        localMaterialData = await fetchMaterialData(currentPage, ITEMS_PER_PAGE, activeMapFilter);
         renderMaterialPage();
     } catch(error) {
         console.error(error);
@@ -202,60 +187,27 @@ function setupMaterialEventListeners() {
     const stockDateInput = document.getElementById('stock-date') as HTMLInputElement;
     const prevBtn = document.getElementById('material-prev-btn') as HTMLButtonElement;
     const nextBtn = document.getElementById('material-next-btn') as HTMLButtonElement;
+    const mapPaths = document.querySelectorAll<SVGPathElement>('#indonesia-map svg path');
     const modalSubmitBtn = addStockForm.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const materialCardsContainer = document.getElementById('material-cards-container') as HTMLElement;
-    const modalTitle = document.querySelector('#add-stock-modal h3') as HTMLHeadingElement;
 
-    if(!addStockBtn || !modal || !addStockForm || !prevBtn || !nextBtn || !modalSubmitBtn || !materialCardsContainer || !modalTitle) {
+    if(!addStockBtn || !modal || !addStockForm || !prevBtn || !nextBtn || !modalSubmitBtn) {
         console.error("Could not set up material event listeners: key elements are missing.");
         return;
     }
 
-    const openModal = (entryToEdit?: StockEntry) => {
-        addStockForm.reset();
-        if (entryToEdit) {
-            currentEditingId = entryToEdit.id;
-            modalTitle.textContent = 'Revise Material Stock';
-            modalSubmitBtn.textContent = 'Save Changes';
-            
-            // Format UTC date string to local YYYY-MM-DDTHH:mm for the input
-            const localDate = new Date(entryToEdit.date);
-            const year = localDate.getFullYear();
-            const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-            const day = localDate.getDate().toString().padStart(2, '0');
-            const hours = localDate.getHours().toString().padStart(2, '0');
-            const minutes = localDate.getMinutes().toString().padStart(2, '0');
-            (document.getElementById('stock-date') as HTMLInputElement).value = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-            (document.getElementById('stock-supplier') as HTMLInputElement).value = entryToEdit.supplier;
-            (document.getElementById('stock-driver') as HTMLInputElement).value = entryToEdit.driver;
-            (document.getElementById('stock-origin') as HTMLInputElement).value = entryToEdit.origin;
-            (document.getElementById('super-count') as HTMLInputElement).value = entryToEdit.super.count.toString();
-            (document.getElementById('super-volume') as HTMLInputElement).value = entryToEdit.super.volume.toString();
-            (document.getElementById('super-price') as HTMLInputElement).value = entryToEdit.super.price.toString();
-            (document.getElementById('rijek-count') as HTMLInputElement).value = entryToEdit.rijek.count.toString();
-            (document.getElementById('rijek-volume') as HTMLInputElement).value = entryToEdit.rijek.volume.toString();
-            (document.getElementById('rijek-price') as HTMLInputElement).value = entryToEdit.rijek.price.toString();
-        } else {
-            currentEditingId = null;
-            modalTitle.textContent = 'Add New Material Stock';
-            modalSubmitBtn.textContent = 'Save Stock';
-            
-            // Set to current local time, formatted for datetime-local input
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            stockDateInput.value = now.toISOString().slice(0, 16);
-        }
+    const openModal = () => {
         modal.classList.remove('hidden');
     }
-
     const closeModal = () => {
         addStockForm.reset();
-        currentEditingId = null;
         modal.classList.add('hidden');
     };
 
-    addStockBtn.addEventListener('click', () => openModal());
+    addStockBtn.addEventListener('click', () => {
+        addStockForm.reset();
+        stockDateInput.valueAsDate = new Date(); // Set to today by default
+        openModal();
+    });
 
     modalCloseBtn.addEventListener('click', closeModal);
     modalCancelBtn.addEventListener('click', closeModal);
@@ -263,43 +215,17 @@ function setupMaterialEventListeners() {
         if (e.target === modal) closeModal();
     });
 
-    materialCardsContainer.addEventListener('click', async (e) => {
-        const target = e.target as HTMLElement;
-        const reviseBtn = target.closest('.btn-revise');
-        const deleteBtn = target.closest('.btn-delete');
-
-        if (reviseBtn) {
-            const id = Number(reviseBtn.getAttribute('data-id'));
-            const entry = localMaterialData?.entries.find(e => e.id === id);
-            if (entry) {
-                openModal(entry);
-            }
-        }
-
-        if (deleteBtn) {
-            const id = Number(deleteBtn.getAttribute('data-id'));
-            if (confirm('Are you sure you want to delete this stock entry? This action cannot be undone.')) {
-                try {
-                    await deleteStockEntryAPI(id);
-                    await refreshMaterialData(); // Refresh to show deletion
-                } catch(error) {
-                    alert((error as Error).message);
-                }
-            }
-        }
-    });
-
     addStockForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(addStockForm);
         
-        const dateValue = (formData.get('date') as string)?.trim();
+        const date = (formData.get('date') as string)?.trim();
         const supplier = (formData.get('supplier') as string)?.trim();
         const driver = (formData.get('driver') as string)?.trim();
         const origin = (formData.get('origin') as string)?.trim();
         
         let errors: string[] = [];
-        if (!dateValue) errors.push('Date & Time is required.');
+        if (!date) errors.push('Date is required.');
         if (!supplier) errors.push('Supplier name is required.');
         if (!driver) errors.push('Driver name is required.');
         if (!origin) errors.push('Origin is required.');
@@ -313,6 +239,9 @@ function setupMaterialEventListeners() {
             if (isNaN(num) || num < 0) {
                 errors.push(`${name} must be a valid, non-negative number.`);
                 return NaN;
+            }
+            if (valueStr.includes('.') && (valueStr.split('.')[1] || '').length > 2) {
+                errors.push(`${name} cannot have more than 2 decimal places.`);
             }
             return num;
         };
@@ -347,26 +276,18 @@ function setupMaterialEventListeners() {
         modalSubmitBtn.textContent = 'Saving...';
         
         try {
-             const entryData: Omit<StockEntry, 'id'> = {
-                date: new Date(dateValue).toISOString(),
-                supplier, 
-                driver, 
-                origin,
+            const newEntryData: Omit<StockEntry, 'id'> = {
+                date, supplier, driver, origin,
                 super: { count: superCount, volume: superVolume, price: superPrice },
                 rijek: { count: rijekCount, volume: rijekVolume, price: rijekPrice }
             };
-
-            if (currentEditingId) {
-                const entryToUpdate: StockEntry = { id: currentEditingId, ...entryData };
-                await updateStockEntryAPI(entryToUpdate);
-            } else {
-                await createStockEntryAPI(entryData);
-                currentPage = 1;
-            }
+            await createStockEntryAPI(newEntryData);
             
             closeModal();
-            await refreshMaterialData();
 
+            currentPage = 1;
+            activeMapFilter = null;
+            await refreshMaterialData();
         } catch (error) {
             console.error(error);
             alert((error as Error).message);
@@ -390,6 +311,18 @@ function setupMaterialEventListeners() {
             currentPage++;
             refreshMaterialData();
         }
+    });
+
+    mapPaths.forEach(path => {
+        path.addEventListener('click', () => {
+            const provinceName = path.getAttribute('data-name');
+            if (!provinceName) return;
+
+            activeMapFilter = (provinceName === activeMapFilter) ? null : provinceName;
+            currentPage = 1;
+            
+            refreshMaterialData();
+        });
     });
 }
 
