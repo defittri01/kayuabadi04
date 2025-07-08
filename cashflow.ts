@@ -105,10 +105,15 @@ function updateBulkActionUI() {
     // Update select-all checkbox
     const selectAllCheckbox = document.getElementById('select-all-checkbox') as HTMLInputElement;
     if (selectAllCheckbox) {
-        if (visibleEntryIds.length > 0 && visibleEntryIds.every(id => selectedEntryIds.has(id))) {
+        const nonAutomatedVisibleIds = visibleEntryIds.filter(id => {
+            const entry = localCashflowData?.dailyLog.find(e => e.id === id);
+            return entry?.category !== 'Kayu Log';
+        });
+
+        if (nonAutomatedVisibleIds.length > 0 && nonAutomatedVisibleIds.every(id => selectedEntryIds.has(id))) {
             selectAllCheckbox.checked = true;
             selectAllCheckbox.indeterminate = false;
-        } else if (visibleEntryIds.some(id => selectedEntryIds.has(id))) {
+        } else if (nonAutomatedVisibleIds.some(id => selectedEntryIds.has(id))) {
             selectAllCheckbox.checked = false;
             selectAllCheckbox.indeterminate = true;
         } else {
@@ -187,13 +192,16 @@ function renderDailyLogTable(dataToRender: DailyCashflowLogEntry[]) {
     }
     
     dailyLogTableBody.innerHTML = sortedLogForDisplay.map(entry => {
+        const isAutomatedEntry = entry.category === 'Kayu Log';
         const typeClass = entry.type === 'income' ? 'log-type-income' : 'log-type-expense';
         const typeText = entry.type.charAt(0).toUpperCase() + entry.type.slice(1);
         const entryDate = new Date(entry.date + 'T00:00:00'); // Ensure date is parsed in local time zone
 
         return `
-            <tr data-entry-id="${entry.id}">
-                <td class="checkbox-cell"><input type="checkbox" class="row-checkbox" data-id="${entry.id}" aria-label="Select entry for ${entry.description}"></td>
+            <tr data-entry-id="${entry.id}" class="${isAutomatedEntry ? 'automated' : ''}">
+                <td class="checkbox-cell">
+                    ${isAutomatedEntry ? '' : `<input type="checkbox" class="row-checkbox" data-id="${entry.id}" aria-label="Select entry for ${entry.description}">`}
+                </td>
                 <td>${entryDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                 <td><span class="log-type ${typeClass}">${typeText}</span></td>
                 <td>${entry.category}</td>
@@ -201,12 +209,15 @@ function renderDailyLogTable(dataToRender: DailyCashflowLogEntry[]) {
                 <td>${formatCurrency(entry.amount)}</td>
                 <td>${formatCurrency(entry.runningBalance ?? 0)}</td>
                 <td class="actions-cell">
-                    <button class="action-btn btn-revise" data-id="${entry.id}" aria-label="Revise entry">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                    <button class="action-btn btn-delete" data-id="${entry.id}" aria-label="Delete entry">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
+                    ${isAutomatedEntry ? 
+                        `<span class="automated-entry-indicator" title="Managed automatically from Material Stock">&#128274;</span>` :
+                        `<button class="action-btn btn-revise" data-id="${entry.id}" aria-label="Revise entry">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button class="action-btn btn-delete" data-id="${entry.id}" aria-label="Delete entry">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>`
+                    }
                 </td>
             </tr>
         `;
@@ -432,8 +443,12 @@ function setupCashflowEventListeners() {
             updateBulkActionUI();
         }
         if (selectAllCheckbox) {
-            if (selectAllCheckbox.checked) visibleEntryIds.forEach(id => selectedEntryIds.add(id));
-            else visibleEntryIds.forEach(id => selectedEntryIds.delete(id));
+            const nonAutomatedVisibleIds = visibleEntryIds.filter(id => {
+                const entry = localCashflowData?.dailyLog.find(e => e.id === id);
+                return entry?.category !== 'Kayu Log';
+            });
+            if (selectAllCheckbox.checked) nonAutomatedVisibleIds.forEach(id => selectedEntryIds.add(id));
+            else nonAutomatedVisibleIds.forEach(id => selectedEntryIds.delete(id));
             updateBulkActionUI();
         }
         if (reviseBtn && localCashflowData) {
