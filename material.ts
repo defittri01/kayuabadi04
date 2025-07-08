@@ -218,7 +218,15 @@ function setupMaterialEventListeners() {
             modalTitle.textContent = 'Revise Material Stock';
             modalSubmitBtn.textContent = 'Save Changes';
             
-            (document.getElementById('stock-date') as HTMLInputElement).value = entryToEdit.date.split('T')[0];
+            // Format UTC date string to local YYYY-MM-DDTHH:mm for the input
+            const localDate = new Date(entryToEdit.date);
+            const year = localDate.getFullYear();
+            const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+            const day = localDate.getDate().toString().padStart(2, '0');
+            const hours = localDate.getHours().toString().padStart(2, '0');
+            const minutes = localDate.getMinutes().toString().padStart(2, '0');
+            (document.getElementById('stock-date') as HTMLInputElement).value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
             (document.getElementById('stock-supplier') as HTMLInputElement).value = entryToEdit.supplier;
             (document.getElementById('stock-driver') as HTMLInputElement).value = entryToEdit.driver;
             (document.getElementById('stock-origin') as HTMLInputElement).value = entryToEdit.origin;
@@ -232,7 +240,11 @@ function setupMaterialEventListeners() {
             currentEditingId = null;
             modalTitle.textContent = 'Add New Material Stock';
             modalSubmitBtn.textContent = 'Save Stock';
-            stockDateInput.valueAsDate = new Date();
+            
+            // Set to current local time, formatted for datetime-local input
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            stockDateInput.value = now.toISOString().slice(0, 16);
         }
         modal.classList.remove('hidden');
     }
@@ -281,13 +293,13 @@ function setupMaterialEventListeners() {
         e.preventDefault();
         const formData = new FormData(addStockForm);
         
-        const date = (formData.get('date') as string)?.trim();
+        const dateValue = (formData.get('date') as string)?.trim();
         const supplier = (formData.get('supplier') as string)?.trim();
         const driver = (formData.get('driver') as string)?.trim();
         const origin = (formData.get('origin') as string)?.trim();
         
         let errors: string[] = [];
-        if (!date) errors.push('Date is required.');
+        if (!dateValue) errors.push('Date & Time is required.');
         if (!supplier) errors.push('Supplier name is required.');
         if (!driver) errors.push('Driver name is required.');
         if (!origin) errors.push('Origin is required.');
@@ -301,9 +313,6 @@ function setupMaterialEventListeners() {
             if (isNaN(num) || num < 0) {
                 errors.push(`${name} must be a valid, non-negative number.`);
                 return NaN;
-            }
-            if (valueStr.includes('.') && (valueStr.split('.')[1] || '').length > 2) {
-                errors.push(`${name} cannot have more than 2 decimal places.`);
             }
             return num;
         };
@@ -339,7 +348,10 @@ function setupMaterialEventListeners() {
         
         try {
              const entryData: Omit<StockEntry, 'id'> = {
-                date, supplier, driver, origin,
+                date: new Date(dateValue).toISOString(),
+                supplier, 
+                driver, 
+                origin,
                 super: { count: superCount, volume: superVolume, price: superPrice },
                 rijek: { count: rijekCount, volume: rijekVolume, price: rijekPrice }
             };
