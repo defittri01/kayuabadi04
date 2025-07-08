@@ -15,7 +15,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <header class="top-bar">
@@ -265,53 +264,42 @@
               </div>
           </div>
 
-          <!-- Summary -->
-          <div class="cashflow-summary content-card">
-              <div class="cashflow-stats">
-                  <div class="summary-card income">
-                      <h4 class="summary-card-header">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                          <span>Total Income</span>
-                      </h4>
-                      <p id="cashflow-total-income" class="summary-card-value">Rp 0</p>
-                  </div>
-                  <div class="summary-card expense">
-                      <h4 class="summary-card-header">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                          <span>Total Expenses</span>
-                      </h4>
-                      <p id="cashflow-total-expenses" class="summary-card-value">Rp 0</p>
-                  </div>
-                   <div class="summary-card net-profit">
-                      <h4 class="summary-card-header">
-                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trending-up"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                          <span>Net Profit</span>
-                      </h4>
-                      <p id="cashflow-net-profit" class="summary-card-value">Rp 0</p>
-                  </div>
+           <!-- Redesigned Summary -->
+          <div id="cashflow-summary-redesigned" class="content-card">
+            <div class="summary-item">
+              <span class="summary-label">Total Income</span>
+              <span id="cashflow-total-income" class="summary-value income">Rp 0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Total Expenses</span>
+              <span id="cashflow-total-expenses" class="summary-value expense">Rp 0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Net Profit</span>
+              <span id="cashflow-net-profit" class="summary-value net-profit">Rp 0</span>
+            </div>
+            <div class="summary-item-full">
+              <span class="summary-label">Financial Health (Expenses vs Income)</span>
+              <div class="progress-bar-container">
+                <div id="financial-health-bar" class="progress-bar"></div>
               </div>
-              <div class="chart-card">
-                  <h3>Income vs Expenses</h3>
-                  <div id="cashflow-summary-chart-wrapper" class="chart-wrapper large-chart"></div>
-              </div>
+            </div>
           </div>
 
-          <!-- Details -->
-          <div class="cashflow-details">
-              <div class="cashflow-column content-card">
-                  <h3>Income by Category</h3>
-                  <div class="chart-container">
-                      <div id="cash-in-chart-wrapper" class="chart-wrapper"></div>
-                      <ul id="cash-in-legend" class="chart-legend"></ul>
-                  </div>
-              </div>
-              <div class="cashflow-column content-card">
-                  <h3>Expenses by Category</h3>
-                  <div class="chart-container">
-                      <div id="cash-out-chart-wrapper" class="chart-wrapper"></div>
-                      <ul id="cash-out-legend" class="chart-legend"></ul>
-                  </div>
-              </div>
+          <!-- Redesigned Details -->
+          <div class="cashflow-breakdown content-card">
+            <div class="breakdown-column">
+              <h3>Top Income Sources</h3>
+              <ul id="cash-in-breakdown" class="breakdown-list">
+                <!-- JS will populate this -->
+              </ul>
+            </div>
+            <div class="breakdown-column">
+              <h3>Top Expense Categories</h3>
+              <ul id="cash-out-breakdown" class="breakdown-list">
+                <!-- JS will populate this -->
+              </ul>
+            </div>
           </div>
           
           <!-- Daily Log Table -->
@@ -497,6 +485,5 @@
 
 
   <script type="module" src="index.tsx"></script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
