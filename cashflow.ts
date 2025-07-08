@@ -4,8 +4,7 @@
  */
 
 import { formatCurrency } from './utils';
-import { createPieChart } from './pieChart';
-import type { CashflowItem, ChartSlice, DailyCashflowLogEntry, CashflowData } from './types';
+import type { CashflowItem, DailyCashflowLogEntry, CashflowData } from './types';
 
 // --- STATE MANAGEMENT ---
 let localCashflowData: CashflowData | null = null;
@@ -18,10 +17,6 @@ type SortDirection = 'asc' | 'desc';
 let activeSortKey: SortKey = null;
 let activeSortDirection: SortDirection = 'asc';
 let isInitialized = false;
-
-// Chart Colors
-const cashInColors = ['#2E86C1', '#2ECC71', '#3498DB', '#1ABC9C', '#5DADE2'];
-const cashOutColors = ['#E74C3C', '#C0392B', '#922B21', '#EC7063', '#F1948A', '#D98880', '#CD6155', '#A93226', '#CB4335', '#D35400'];
 
 // --- API COMMUNICATION LAYER ---
 
@@ -118,41 +113,38 @@ function updateBulkActionUI() {
     }
 }
 
-function renderCategoryPieChart(
-  wrapperId: string,
-  legendId: string,
-  items: CashflowItem[],
-  total: number,
-  colors: string[]
+function renderBreakdownLists(
+    listElementId: string,
+    items: CashflowItem[],
+    totalAmount: number
 ) {
-  const legendEl = document.getElementById(legendId);
-  if (!legendEl) return;
-  legendEl.innerHTML = '';
+    const listEl = document.getElementById(listElementId) as HTMLUListElement;
+    if (!listEl) return;
 
-  const chartData: ChartSlice[] = items.map((item, index) => {
-    const color = colors[index % colors.length];
-    
-    const li = document.createElement('li');
-    li.innerHTML = `<span class="legend-color" style="background-color: ${color};"></span>${item.category}`;
-    legendEl.appendChild(li);
+    // Sort items by amount descending and take top 5
+    const sortedItems = [...items].sort((a, b) => b.amount - a.amount).slice(0, 5);
 
-    return {
-      percent: total > 0 ? (item.amount / total) * 100 : 0,
-      label: item.category,
-      color: color,
-      value: formatCurrency(item.amount),
-    };
-  });
-
-  const wrapper = document.getElementById(wrapperId);
-  if(wrapper) {
-    if (chartData.length > 0) {
-        createPieChart(wrapperId, chartData);
-    } else {
-        wrapper.innerHTML = `<p class="no-data-message" style="margin-top: 2rem;">No data to display.</p>`;
+    if (sortedItems.length === 0) {
+        listEl.innerHTML = `<li class="no-data-message" style="padding:0; background:none;">No data for this period.</li>`;
+        return;
     }
-  }
+
+    listEl.innerHTML = sortedItems.map(item => {
+        const percentage = totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0;
+        return `
+            <li class="breakdown-item">
+                <div class="breakdown-item-header">
+                    <span class="breakdown-category">${item.category}</span>
+                    <span class="breakdown-amount">${formatCurrency(item.amount)}</span>
+                </div>
+                <div class="breakdown-progress-bar">
+                    <div style="width: ${percentage.toFixed(2)}%;"></div>
+                </div>
+            </li>
+        `;
+    }).join('');
 }
+
 
 function renderDailyLogTable(dataToRender: DailyCashflowLogEntry[]) {
     const dailyLogTableBody = document.getElementById('daily-log-body');
@@ -221,46 +213,35 @@ function renderCashflowPage() {
     const totalIncomeEl = document.getElementById('cashflow-total-income');
     const totalExpensesEl = document.getElementById('cashflow-total-expenses');
     const netProfitEl = document.getElementById('cashflow-net-profit');
+    const healthBarEl = document.getElementById('financial-health-bar');
     
-    if (!localCashflowData || !totalIncomeEl || !totalExpensesEl || !netProfitEl) return;
+    if (!localCashflowData || !totalIncomeEl || !totalExpensesEl || !netProfitEl || !healthBarEl) return;
     
-    const dataForRendering = localCashflowData;
-    const totalIncome = dataForRendering.income.reduce((sum, item) => sum + item.amount, 0);
-    const totalExpenses = dataForRendering.expenses.reduce((sum, item) => sum + item.amount, 0);
+    const { income, expenses, dailyLog } = localCashflowData;
+    const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
     const netProfit = totalIncome - totalExpenses;
 
+    // Render Summary Header
     totalIncomeEl.textContent = formatCurrency(totalIncome);
     totalExpensesEl.textContent = formatCurrency(totalExpenses);
     netProfitEl.textContent = formatCurrency(netProfit);
-    netProfitEl.style.color = netProfit >= 0 ? 'var(--status-green)' : 'var(--status-red)';
+    netProfitEl.style.color = netProfit >= 0 ? 'var(--accent-color)' : 'var(--status-red)';
 
-    const totalCashflow = totalIncome + totalExpenses;
-    const summaryChartData: ChartSlice[] = [];
-    if (totalIncome > 0) {
-        summaryChartData.push({
-            percent: totalCashflow > 0 ? (totalIncome / totalCashflow) * 100 : (totalExpenses > 0 ? 0 : 100),
-            label: 'Income', color: 'var(--status-green)', value: formatCurrency(totalIncome)
-        });
-    }
-    if (totalExpenses > 0) {
-        summaryChartData.push({
-            percent: totalCashflow > 0 ? (totalExpenses / totalCashflow) * 100 : (totalIncome > 0 ? 0 : 100),
-            label: 'Expenses', color: 'var(--status-red)', value: formatCurrency(totalExpenses)
-        });
-    }
+    // Render Financial Health Bar
+    const expenseRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : (totalExpenses > 0 ? 100 : 0);
+    healthBarEl.style.width = `${Math.min(expenseRatio, 100)}%`;
+    healthBarEl.style.backgroundColor = expenseRatio > 80 ? 'var(--status-yellow)' : 'var(--status-red)';
+    if (expenseRatio <= 80) healthBarEl.style.backgroundColor = 'var(--status-red)';
+    if (expenseRatio <= 50) healthBarEl.style.backgroundColor = 'var(--status-green)';
     
-    const summaryWrapper = document.getElementById('cashflow-summary-chart-wrapper');
-    if (summaryWrapper) {
-      if (summaryChartData.length > 0) {
-          createPieChart('cashflow-summary-chart-wrapper', summaryChartData);
-      } else {
-          summaryWrapper.innerHTML = `<p class="no-data-message" style="margin-top: 2rem;">No data yet.</p>`;
-      }
-    }
 
-    renderCategoryPieChart('cash-in-chart-wrapper', 'cash-in-legend', dataForRendering.income, totalIncome, cashInColors);
-    renderCategoryPieChart('cash-out-chart-wrapper', 'cash-out-legend', dataForRendering.expenses, totalExpenses, cashOutColors);
-    renderDailyLogTable(dataForRendering.dailyLog);
+    // Render Breakdown Lists
+    renderBreakdownLists('cash-in-breakdown', income, totalIncome);
+    renderBreakdownLists('cash-out-breakdown', expenses, totalExpenses);
+
+    // Render Table
+    renderDailyLogTable(dailyLog);
 }
 
 // --- SORTING LOGIC ---
