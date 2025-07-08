@@ -199,7 +199,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(201).json(newEntry);
         }
 
-        res.setHeader('Allow', ['GET', 'POST']);
+        if (req.method === 'PUT') {
+            if (!req.body || typeof req.body.id !== 'number') {
+                return res.status(400).json({ message: 'Request body must include a numeric ID.' });
+            }
+
+            const validationError = validateStockEntry(req.body);
+            if (validationError) {
+                return res.status(400).json({ message: validationError });
+            }
+
+            const { id, date, supplier, driver, origin, super: superLog, rijek } = req.body;
+            
+            const result = await client.query(
+                `UPDATE stock_entries SET
+                    supplier = $1, driver = $2, origin = $3, date = $4,
+                    super_count = $5, super_volume = $6, super_price = $7,
+                    rijek_count = $8, rijek_volume = $9, rijek_price = $10
+                 WHERE id = $11
+                 RETURNING *`,
+                [supplier, driver, origin, date, superLog.count, superLog.volume, superLog.price, rijek.count, rijek.volume, rijek.price, id]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'Entry not found.' });
+            }
+            const updatedEntry = mapRowToStockEntry(result.rows[0]);
+            return res.status(200).json(updatedEntry);
+        }
+
+        if (req.method === 'DELETE') {
+            const { id } = req.body;
+            if (typeof id !== 'number') {
+                return res.status(400).json({ message: 'A numeric ID is required for deletion.' });
+            }
+
+            const result = await client.query('DELETE FROM stock_entries WHERE id = $1', [id]);
+            if (result.rowCount === 0) {
+                return res.status(404).json({ message: 'Entry not found' });
+            }
+            return res.status(204).end();
+        }
+
+
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
 
     } catch (error) {
