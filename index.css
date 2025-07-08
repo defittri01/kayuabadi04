@@ -194,6 +194,11 @@ body {
 
 .page-header {
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .page-header h1 {
@@ -396,15 +401,18 @@ body {
 
 .material-summary-section {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
+  justify-content: center;
 }
 
 .summary-chart-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
 }
 .summary-chart-container h3 {
   font-size: 1.25rem;
@@ -439,11 +447,6 @@ body {
   color: var(--text-primary);
 }
 
-.summary-actions-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .btn-primary {
   background-color: var(--accent-color);
   color: #fff;
@@ -562,6 +565,19 @@ body {
   font-size: 0.9rem;
 }
 
+.pagination-container button {
+  background-color: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pagination-container button:hover {
+  background-color: #e9ecef;
+}
+
 .pagination-container button:disabled {
   background-color: #e9ecef;
   color: #adb5bd;
@@ -579,7 +595,6 @@ body {
 .page-filters {
   display: flex;
   gap: 1.5rem;
-  margin-top: 1.5rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1083,9 +1098,6 @@ body {
 
 /* Responsive Adjustments */
 @media (max-width: 992px) {
-  .material-summary-section {
-    grid-template-columns: 1fr;
-  }
   .cashflow-summary, .cashflow-details {
     grid-template-columns: 1fr;
   }
