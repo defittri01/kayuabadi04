@@ -1,5 +1,6 @@
 
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -54,12 +55,15 @@ const mapRowToStockEntry = (row: any): StockEntry => {
     };
 };
 
-const validateStockEntry = (body: any): string | null => {
-    const { date, supplier, driver, origin, super: superLog, rijek } = body;
+const validateStockEntry = (body: any, isUpdate = false): string | null => {
+    const { id, date, supplier, driver, origin, super: superLog, rijek } = body;
     const MAX_INT = 2147483647;
     const MAX_BIGINT = 9223372036854775807;
     const MAX_VOLUME = 100000000; // For NUMERIC(10, 2), max is 99,999,999.99
 
+    if (isUpdate && (typeof id !== 'number' || id <= 0)) {
+        return 'Invalid or missing ID for update.';
+    }
     if (!date || typeof date !== 'string' || isNaN(new Date(date).getTime())) return 'A valid date is required.';
     if (!supplier || typeof supplier !== 'string' || supplier.trim().length === 0) return 'Supplier name is required.';
     if (!driver || typeof driver !== 'string' || driver.trim().length === 0) return 'Driver name is required.';
@@ -210,7 +214,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(201).json(newEntry);
         }
 
-        res.setHeader('Allow', ['GET', 'POST']);
+        if (req.method === 'PUT') {
+            if (!req.body) {
+                return res.status(400).json({ message: 'Request body is missing.' });
+            }
+            
+            const validationError = validateStockEntry(req.body, true); // true for update
+            if (validationError) {
+                return res.status(400).json({ message: validationError });
+            }
+            
+            const { id, date, supplier, driver, origin, super: superLog, rijek } = req.body;
+            
+            const result = await client.query(
+                `UPDATE stock_entries SET
+                    supplier = $1, driver = $2, origin = $3, date = $4,
+                    super_count = $5, super_volume = $6, super_price = $7,
+                    rijek_count = $8, rijek_volume = $9, rijek_price = $10
+                 WHERE id = $11
+                 RETURNING *`,
+                [supplier, driver, origin, date, superLog.count, superLog.volume, superLog.price, rijek.count, rijek.volume, rijek.price, id]
+            );
+
+            if (result.rowCount === 0) {
+                return res.status(404).json({ message: 'Stock entry not found.' });
+            }
+            const updatedEntry = mapRowToStockEntry(result.rows[0]);
+            return res.status(200).json(updatedEntry);
+        }
+        
+        if (req.method === 'DELETE') {
+            const { id } = req.body;
+
+            if (typeof id !== 'number' || id <= 0) {
+                return res.status(400).json({ message: 'A valid stock entry ID is required.' });
+            }
+
+            const result = await client.query('DELETE FROM stock_entries WHERE id = $1', [id]);
+
+            if (result.rowCount === 0) {
+                return res.status(404).json({ message: 'Stock entry not found.' });
+            }
+
+            return res.status(204).end();
+        }
+
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
 
     } catch (error) {
